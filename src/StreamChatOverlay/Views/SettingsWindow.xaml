@@ -2,13 +2,80 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Settings"
-        Width="400" Height="500"
+        Width="400" Height="520"
         WindowStartupLocation="CenterOwner"
-        ResizeMode="NoResize">
-    <Grid>
-        <TextBlock Text="Settings (coming soon)"
-                   HorizontalAlignment="Center"
-                   VerticalAlignment="Center"
-                   FontSize="16"/>
-    </Grid>
+        ResizeMode="NoResize"
+        Background="#1E1E2E"
+        Foreground="White">
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="20">
+        <StackPanel>
+            <TextBlock Text="Stream Chat Overlay Settings" FontSize="18"
+                       FontWeight="Bold" Margin="0,0,0,16"/>
+
+            <!-- Connection -->
+            <TextBlock Text="CHANNELS" FontSize="11" Foreground="#888"
+                       Margin="0,0,0,4"/>
+            <TextBlock Text="Twitch Username" Margin="0,0,0,4"/>
+            <TextBox Text="{Binding Settings.TwitchUsername, UpdateSourceTrigger=PropertyChanged}"
+                     Padding="6" Margin="0,0,0,8"
+                     Background="#2A2A3E" Foreground="White" BorderBrush="#444"/>
+
+            <TextBlock Text="Kick Username" Margin="0,0,0,4"/>
+            <TextBox Text="{Binding Settings.KickUsername, UpdateSourceTrigger=PropertyChanged}"
+                     Padding="6" Margin="0,0,0,12"
+                     Background="#2A2A3E" Foreground="White" BorderBrush="#444"/>
+
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
+                <Button Content="Connect" Command="{Binding ConnectCommand}"
+                        Padding="16,6" Background="#9147FF" Foreground="White"
+                        BorderThickness="0" Cursor="Hand" Margin="0,0,8,0"/>
+                <Button Content="Disconnect" Command="{Binding DisconnectCommand}"
+                        Padding="16,6" Background="#444" Foreground="White"
+                        BorderThickness="0" Cursor="Hand"/>
+            </StackPanel>
+
+            <Separator Background="#333" Margin="0,0,0,12"/>
+
+            <!-- Appearance -->
+            <TextBlock Text="APPEARANCE" FontSize="11" Foreground="#888"
+                       Margin="0,0,0,8"/>
+
+            <TextBlock Text="{Binding Settings.FontSize, StringFormat='Font Size: {0:F0}'}"
+                       Margin="0,0,0,4"/>
+            <Slider Value="{Binding Settings.FontSize}" Minimum="10" Maximum="32"
+                    TickFrequency="1" IsSnapToTickEnabled="True" Margin="0,0,0,12"/>
+
+            <TextBlock Text="{Binding Settings.Opacity, StringFormat='Opacity: {0:P0}'}"
+                       Margin="0,0,0,4"/>
+            <Slider Value="{Binding Settings.Opacity}" Minimum="0.1" Maximum="1.0"
+                    TickFrequency="0.05" IsSnapToTickEnabled="True" Margin="0,0,0,12"/>
+
+            <TextBlock Text="{Binding Settings.MaxMessages, StringFormat='Max Messages: {0}'}"
+                       Margin="0,0,0,4"/>
+            <Slider Value="{Binding Settings.MaxMessages}" Minimum="50" Maximum="500"
+                    TickFrequency="50" IsSnapToTickEnabled="True" Margin="0,0,0,12"/>
+
+            <Separator Background="#333" Margin="0,0,0,12"/>
+
+            <!-- Toggles -->
+            <TextBlock Text="DISPLAY" FontSize="11" Foreground="#888"
+                       Margin="0,0,0,8"/>
+            <CheckBox Content="Show Platform Icon (T/K)"
+                      IsChecked="{Binding Settings.ShowPlatformIcon}"
+                      Foreground="White" Margin="0,0,0,6"/>
+            <CheckBox Content="Show Badges"
+                      IsChecked="{Binding Settings.ShowBadges}"
+                      Foreground="White" Margin="0,0,0,6"/>
+            <CheckBox Content="Show Emotes"
+                      IsChecked="{Binding Settings.ShowEmotes}"
+                      Foreground="White" Margin="0,0,0,12"/>
+
+            <Separator Background="#333" Margin="0,0,0,12"/>
+
+            <Button Content="Save &amp; Close" Click="SaveClose_Click"
+                    Padding="16,8" Background="#9147FF" Foreground="White"
+                    BorderThickness="0" Cursor="Hand" HorizontalAlignment="Right"/>
+        </StackPanel>
+    </ScrollViewer>
 </Window>

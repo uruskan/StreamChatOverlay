@@ -1,14 +1,19 @@
 using System.Windows;
+using StreamChatOverlay.ViewModels;
 
 namespace StreamChatOverlay.Views;
 
-/// <summary>
-/// Stub settings window - full implementation in Task 8.
-/// </summary>
 public partial class SettingsWindow : Window
 {
     public SettingsWindow()
     {
         InitializeComponent();
+    }
+
+    private void SaveClose_Click(object sender, RoutedEventArgs e)
+    {
+        var vm = (OverlayViewModel)DataContext;
+        vm.SaveSettings();
+        Close();
     }
 }
