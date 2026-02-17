@@ -2,7 +2,7 @@ namespace StreamChatOverlay.Models;
 
 public enum ChatPlatform { Twitch, Kick }
 
-public sealed class ChatMessage
+public sealed record ChatMessage
 {
     public required string Id { get; init; }
     public required ChatPlatform Platform { get; init; }
