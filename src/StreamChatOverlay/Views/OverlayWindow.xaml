@@ -55,7 +55,7 @@
     <Grid>
         <!-- Main container with semi-transparent background -->
         <Border CornerRadius="8"
-                Background="{Binding Settings.BackgroundColor}"
+                Background="{Binding Settings.BackgroundColor, Converter={StaticResource StringToBrush}}"
                 Opacity="{Binding Settings.Opacity}">
         </Border>
 

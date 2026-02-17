@@ -56,10 +56,12 @@ public static class InlineMessageBehavior
                 }
                 else
                 {
-                    image.Source = new BitmapImage(new Uri(fragment.EmoteUrl))
-                    {
-                        CacheOption = BitmapCacheOption.OnLoad
-                    };
+                    var bmp = new BitmapImage();
+                    bmp.BeginInit();
+                    bmp.UriSource = new Uri(fragment.EmoteUrl);
+                    bmp.CacheOption = BitmapCacheOption.OnLoad;
+                    bmp.EndInit();
+                    image.Source = bmp;
                 }
 
                 textBlock.Inlines.Add(new InlineUIContainer(image)
