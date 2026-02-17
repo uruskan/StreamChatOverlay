@@ -1,0 +1,156 @@
+<Window x:Class="StreamChatOverlay.Views.OverlayWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:b="clr-namespace:StreamChatOverlay.Behaviors"
+        xmlns:vm="clr-namespace:StreamChatOverlay.ViewModels"
+        xmlns:conv="clr-namespace:StreamChatOverlay.Converters"
+        Title="Stream Chat Overlay"
+        AllowsTransparency="True"
+        WindowStyle="None"
+        Topmost="True"
+        ShowInTaskbar="True"
+        Background="Transparent"
+        ResizeMode="NoResize"
+        Width="{Binding Settings.WindowWidth, Mode=TwoWay}"
+        Height="{Binding Settings.WindowHeight, Mode=TwoWay}"
+        Left="{Binding Settings.WindowLeft, Mode=TwoWay}"
+        Top="{Binding Settings.WindowTop, Mode=TwoWay}">
+
+    <Window.DataContext>
+        <vm:OverlayViewModel/>
+    </Window.DataContext>
+
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVisibility"/>
+        <conv:StringToBrushConverter x:Key="StringToBrush"/>
+        <conv:PlatformToIconConverter x:Key="PlatformToIcon"/>
+
+        <Style x:Key="TitleBarButton" TargetType="Button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Width" Value="30"/>
+            <Setter Property="Height" Value="30"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                CornerRadius="4">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#40FFFFFF"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <Grid>
+        <!-- Main container with semi-transparent background -->
+        <Border CornerRadius="8"
+                Background="{Binding Settings.BackgroundColor}"
+                Opacity="{Binding Settings.Opacity}">
+        </Border>
+
+        <DockPanel>
+            <!-- Title bar (visible only in setup mode) -->
+            <Border DockPanel.Dock="Top"
+                    Background="#40FFFFFF"
+                    Height="30"
+                    CornerRadius="8,8,0,0"
+                    MouseLeftButtonDown="TitleBar_MouseLeftButtonDown"
+                    Visibility="{Binding IsBorderVisible, Converter={StaticResource BoolToVisibility}}">
+                <DockPanel Margin="8,0">
+                    <TextBlock Text="Stream Chat Overlay"
+                               Foreground="White"
+                               VerticalAlignment="Center"
+                               FontSize="12"/>
+                    <StackPanel DockPanel.Dock="Right"
+                                Orientation="Horizontal"
+                                HorizontalAlignment="Right">
+                        <Button Content="&#x2699;" ToolTip="Settings"
+                                Click="Settings_Click"
+                                Style="{StaticResource TitleBarButton}"/>
+                        <Button Content="&#x2796;" ToolTip="Hide Borders"
+                                Command="{Binding ToggleBordersCommand}"
+                                Style="{StaticResource TitleBarButton}"/>
+                        <Button Content="&#x2716;" ToolTip="Close"
+                                Click="Close_Click"
+                                Style="{StaticResource TitleBarButton}"/>
+                    </StackPanel>
+                </DockPanel>
+            </Border>
+
+            <!-- Status bar (visible only in setup mode) -->
+            <Border DockPanel.Dock="Bottom"
+                    Background="#40FFFFFF"
+                    Height="24"
+                    CornerRadius="0,0,8,8"
+                    Visibility="{Binding IsBorderVisible, Converter={StaticResource BoolToVisibility}}">
+                <TextBlock Text="{Binding StatusText}"
+                           Foreground="#AAFFFFFF"
+                           FontSize="11"
+                           VerticalAlignment="Center"
+                           Margin="8,0"/>
+            </Border>
+
+            <!-- Chat messages -->
+            <ItemsControl ItemsSource="{Binding Messages}"
+                          x:Name="ChatList"
+                          Margin="4">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <VirtualizingStackPanel/>
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <WrapPanel Margin="2">
+                            <!-- Platform icon -->
+                            <TextBlock Text="{Binding Platform, Converter={StaticResource PlatformToIcon}}"
+                                       Foreground="#888888"
+                                       FontSize="{Binding DataContext.Settings.FontSize, RelativeSource={RelativeSource AncestorType=Window}}"
+                                       Margin="0,0,4,0"
+                                       Visibility="{Binding DataContext.Settings.ShowPlatformIcon, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BoolToVisibility}}"/>
+                            <!-- Username -->
+                            <TextBlock FontWeight="Bold"
+                                       FontSize="{Binding DataContext.Settings.FontSize, RelativeSource={RelativeSource AncestorType=Window}}"
+                                       Margin="0,0,4,0">
+                                <Run Text="{Binding Username, Mode=OneWay}"
+                                     Foreground="{Binding UsernameColor, Converter={StaticResource StringToBrush}}"/>
+                                <Run Text=": " Foreground="{Binding DataContext.Settings.TextColor, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource StringToBrush}}"/>
+                            </TextBlock>
+                            <!-- Message with inline emotes -->
+                            <TextBlock b:InlineMessageBehavior.Fragments="{Binding Fragments}"
+                                       Foreground="{Binding DataContext.Settings.TextColor, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource StringToBrush}}"
+                                       FontSize="{Binding DataContext.Settings.FontSize, RelativeSource={RelativeSource AncestorType=Window}}"
+                                       TextWrapping="Wrap"/>
+                        </WrapPanel>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </DockPanel>
+
+        <!-- Resize grips (visible only in setup mode) -->
+        <Thumb x:Name="ResizeGrip" HorizontalAlignment="Right" VerticalAlignment="Bottom"
+               Width="16" Height="16" Cursor="SizeNWSE"
+               DragDelta="ResizeGrip_DragDelta"
+               Visibility="{Binding IsBorderVisible, Converter={StaticResource BoolToVisibility}}">
+            <Thumb.Template>
+                <ControlTemplate>
+                    <Grid Background="Transparent">
+                        <Path Data="M 0,16 L 16,0 M 5,16 L 16,5 M 10,16 L 16,10"
+                              Stroke="#60FFFFFF" StrokeThickness="1"/>
+                    </Grid>
+                </ControlTemplate>
+            </Thumb.Template>
+        </Thumb>
+    </Grid>
+</Window>
