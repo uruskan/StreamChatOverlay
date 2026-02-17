@@ -10,6 +10,12 @@ public partial class OverlayWindow : Window
     public OverlayWindow()
     {
         InitializeComponent();
+
+        var vm = (OverlayViewModel)DataContext;
+        vm.Messages.CollectionChanged += (_, _) =>
+        {
+            ChatScrollViewer.ScrollToEnd();
+        };
     }
 
     private void TitleBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
