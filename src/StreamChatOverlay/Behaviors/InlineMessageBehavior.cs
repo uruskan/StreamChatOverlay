@@ -38,36 +38,45 @@ public static class InlineMessageBehavior
             }
             else if (fragment.Type == FragmentType.Emote && fragment.EmoteUrl != null)
             {
-                var image = new Image
+                try
                 {
-                    Height = 28,
-                    Width = 28,
-                    Stretch = Stretch.Uniform,
-                    ToolTip = fragment.Content,
-                    Margin = new Thickness(2, 0, 2, 0)
-                };
+                    var image = new Image
+                    {
+                        Height = 28,
+                        Width = 28,
+                        Stretch = Stretch.Uniform,
+                        ToolTip = fragment.Content,
+                        Margin = new Thickness(2, 0, 2, 0)
+                    };
 
-                if (fragment.IsAnimated)
-                {
-                    var uri = new Uri(fragment.EmoteUrl);
-                    ImageBehavior.SetAnimatedSource(image, new BitmapImage(uri));
-                    ImageBehavior.SetRepeatBehavior(image,
-                        System.Windows.Media.Animation.RepeatBehavior.Forever);
-                }
-                else
-                {
-                    var bmp = new BitmapImage();
-                    bmp.BeginInit();
-                    bmp.UriSource = new Uri(fragment.EmoteUrl);
-                    bmp.CacheOption = BitmapCacheOption.OnLoad;
-                    bmp.EndInit();
-                    image.Source = bmp;
-                }
+                    if (fragment.IsAnimated)
+                    {
+                        var uri = new Uri(fragment.EmoteUrl);
+                        ImageBehavior.SetAnimatedSource(image, new BitmapImage(uri));
+                        ImageBehavior.SetRepeatBehavior(image,
+                            System.Windows.Media.Animation.RepeatBehavior.Forever);
+                    }
+                    else
+                    {
+                        var bmp = new BitmapImage();
+                        bmp.BeginInit();
+                        bmp.UriSource = new Uri(fragment.EmoteUrl);
+                        bmp.CacheOption = BitmapCacheOption.OnLoad;
+                        bmp.EndInit();
+                        image.Source = bmp;
+                    }
 
-                textBlock.Inlines.Add(new InlineUIContainer(image)
+                    textBlock.Inlines.Add(new InlineUIContainer(image)
+                    {
+                        BaselineAlignment = BaselineAlignment.Center
+                    });
+                }
+                catch
                 {
-                    BaselineAlignment = BaselineAlignment.Center
-                });
+                    // Failed to load emote image (bad URL, network error, etc.)
+                    // Fall back to displaying the emote name as text
+                    textBlock.Inlines.Add(new Run(fragment.Content));
+                }
             }
         }
     }

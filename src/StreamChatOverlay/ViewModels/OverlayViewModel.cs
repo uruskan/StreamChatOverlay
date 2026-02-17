@@ -25,14 +25,20 @@ public partial class OverlayViewModel : ObservableObject
         _settings = AppSettings.Load();
 
         _twitchService.OnMessageReceived += HandleMessage;
-        _twitchService.OnError += err => StatusText = $"Twitch error: {err}";
-        _twitchService.OnConnected += () => StatusText = "Twitch connected";
-        _twitchService.OnDisconnected += () => StatusText = "Twitch disconnected";
+        _twitchService.OnError += err =>
+            Application.Current.Dispatcher.InvokeAsync(() => StatusText = $"Twitch error: {err}");
+        _twitchService.OnConnected += () =>
+            Application.Current.Dispatcher.InvokeAsync(() => StatusText = "Twitch connected");
+        _twitchService.OnDisconnected += () =>
+            Application.Current.Dispatcher.InvokeAsync(() => StatusText = "Twitch disconnected");
 
         _kickService.OnMessageReceived += HandleMessage;
-        _kickService.OnError += err => StatusText = $"Kick error: {err}";
-        _kickService.OnConnected += () => StatusText = "Kick connected";
-        _kickService.OnDisconnected += () => StatusText = "Kick disconnected";
+        _kickService.OnError += err =>
+            Application.Current.Dispatcher.InvokeAsync(() => StatusText = $"Kick error: {err}");
+        _kickService.OnConnected += () =>
+            Application.Current.Dispatcher.InvokeAsync(() => StatusText = "Kick connected");
+        _kickService.OnDisconnected += () =>
+            Application.Current.Dispatcher.InvokeAsync(() => StatusText = "Kick disconnected");
     }
 
     private void HandleMessage(ChatMessage msg)

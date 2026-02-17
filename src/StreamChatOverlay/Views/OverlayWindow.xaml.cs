@@ -14,7 +14,11 @@ public partial class OverlayWindow : Window
         var vm = (OverlayViewModel)DataContext;
         vm.Messages.CollectionChanged += (_, _) =>
         {
-            ChatScrollViewer.ScrollToEnd();
+            Dispatcher.InvokeAsync(() =>
+            {
+                if (ChatScrollViewer != null)
+                    ChatScrollViewer.ScrollToEnd();
+            }, System.Windows.Threading.DispatcherPriority.Loaded);
         };
     }
 
