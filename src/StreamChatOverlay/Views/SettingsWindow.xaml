@@ -43,7 +43,7 @@
 
             <TextBlock Text="{Binding Settings.FontSize, StringFormat='Font Size: {0:F0}'}"
                        Margin="0,0,0,4"/>
-            <Slider Value="{Binding Settings.FontSize}" Minimum="10" Maximum="32"
+            <Slider Value="{Binding Settings.FontSize}" Minimum="10" Maximum="72"
                     TickFrequency="1" IsSnapToTickEnabled="True" Margin="0,0,0,12"/>
 
             <TextBlock Text="{Binding Settings.Opacity, StringFormat='Opacity: {0:P0}'}"

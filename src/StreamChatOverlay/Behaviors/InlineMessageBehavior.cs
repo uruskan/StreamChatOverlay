@@ -23,12 +23,28 @@ public static class InlineMessageBehavior
     public static IList<MessageFragment>? GetFragments(DependencyObject element)
         => (IList<MessageFragment>?)element.GetValue(FragmentsProperty);
 
+    public static readonly DependencyProperty EmoteSizeProperty =
+        DependencyProperty.RegisterAttached(
+            "EmoteSize",
+            typeof(double),
+            typeof(InlineMessageBehavior),
+            new PropertyMetadata(28.0, OnFragmentsChanged));
+
+    public static void SetEmoteSize(DependencyObject element, double value)
+        => element.SetValue(EmoteSizeProperty, value);
+
+    public static double GetEmoteSize(DependencyObject element)
+        => (double)element.GetValue(EmoteSizeProperty);
+
     private static void OnFragmentsChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
     {
         if (d is not TextBlock textBlock) return;
         textBlock.Inlines.Clear();
 
-        if (e.NewValue is not IList<MessageFragment> fragments) return;
+        var fragments = GetFragments(textBlock);
+        if (fragments == null) return;
+
+        var emoteSize = GetEmoteSize(textBlock);
 
         foreach (var fragment in fragments)
         {
@@ -42,8 +58,8 @@ public static class InlineMessageBehavior
                 {
                     var image = new Image
                     {
-                        Height = 28,
-                        Width = 28,
+                        Height = emoteSize,
+                        Width = emoteSize,
                         Stretch = Stretch.Uniform,
                         ToolTip = fragment.Content,
                         Margin = new Thickness(2, 0, 2, 0)

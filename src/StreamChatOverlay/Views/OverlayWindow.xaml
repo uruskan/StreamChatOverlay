@@ -25,6 +25,7 @@
         <conv:StringToBrushConverter x:Key="StringToBrush"/>
         <conv:PlatformToIconConverter x:Key="PlatformToIcon"/>
         <conv:PlatformToColorConverter x:Key="PlatformToColor"/>
+        <conv:FontSizeToEmoteSizeConverter x:Key="FontSizeToEmoteSize"/>
 
         <DropShadowEffect x:Key="TextShadow" ShadowDepth="1" BlurRadius="3"
                           Color="Black" Opacity="0.9" Direction="315"/>
@@ -140,6 +141,7 @@
                                 </TextBlock>
                                 <!-- Message with inline emotes -->
                                 <TextBlock b:InlineMessageBehavior.Fragments="{Binding Fragments}"
+                                           b:InlineMessageBehavior.EmoteSize="{Binding DataContext.Settings.FontSize, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource FontSizeToEmoteSize}}"
                                            Foreground="{Binding DataContext.Settings.TextColor, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource StringToBrush}}"
                                            FontSize="{Binding DataContext.Settings.FontSize, RelativeSource={RelativeSource AncestorType=Window}}"
                                            TextWrapping="Wrap"/>
