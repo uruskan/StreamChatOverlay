@@ -8,8 +8,8 @@ public sealed class AppSettings
     public string TwitchUsername { get; set; } = "";
     public string KickUsername { get; set; } = "";
     public double FontSize { get; set; } = 14;
-    public double Opacity { get; set; } = 0.75;
-    public string BackgroundColor { get; set; } = "#BF000000";
+    public double Opacity { get; set; } = 1.0;
+    public string BackgroundColor { get; set; } = "#00000000";
     public string TextColor { get; set; } = "#FFFFFF";
     public bool ShowPlatformIcon { get; set; } = true;
     public bool ShowBadges { get; set; } = true;

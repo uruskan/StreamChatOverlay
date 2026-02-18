@@ -26,6 +26,9 @@
         <conv:PlatformToIconConverter x:Key="PlatformToIcon"/>
         <conv:PlatformToColorConverter x:Key="PlatformToColor"/>
 
+        <DropShadowEffect x:Key="TextShadow" ShadowDepth="1" BlurRadius="3"
+                          Color="Black" Opacity="0.9" Direction="315"/>
+
         <Style x:Key="TitleBarButton" TargetType="Button">
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="Foreground" Value="White"/>
@@ -117,7 +120,7 @@
                     </ItemsControl.ItemsPanel>
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <WrapPanel Margin="2">
+                            <WrapPanel Margin="2" Effect="{StaticResource TextShadow}">
                                 <!-- Platform icon -->
                                 <Viewbox Width="{Binding DataContext.Settings.FontSize, RelativeSource={RelativeSource AncestorType=Window}}"
                                          Height="{Binding DataContext.Settings.FontSize, RelativeSource={RelativeSource AncestorType=Window}}"
