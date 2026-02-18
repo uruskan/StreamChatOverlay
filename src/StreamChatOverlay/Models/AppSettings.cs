@@ -21,6 +21,8 @@ public sealed class AppSettings
     public double WindowTop { get; set; } = 100;
     public double WindowWidth { get; set; } = 350;
     public double WindowHeight { get; set; } = 600;
+    public string NotificationSound { get; set; } = "None";
+    public double NotificationVolume { get; set; } = 0.5;
 
     private static readonly string SettingsPath = Path.Combine(
         AppDomain.CurrentDomain.BaseDirectory, "settings.json");

@@ -13,6 +13,7 @@ public partial class SettingsWindow : Window
     private void SaveClose_Click(object sender, RoutedEventArgs e)
     {
         var vm = (OverlayViewModel)DataContext;
+        vm.UpdateNotificationSound();
         vm.SaveSettings();
         Close();
     }

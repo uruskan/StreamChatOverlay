@@ -12,6 +12,7 @@ public partial class OverlayViewModel : ObservableObject
     private readonly TwitchChatService _twitchService = new();
     private readonly KickChatService _kickService = new();
     private readonly EmoteResolver _emoteResolver = new();
+    private readonly SoundService _soundService = new();
 
     public ObservableCollection<ChatMessage> Messages { get; } = [];
 
@@ -23,6 +24,7 @@ public partial class OverlayViewModel : ObservableObject
     public OverlayViewModel()
     {
         _settings = AppSettings.Load();
+        _soundService.SetSound(_settings.NotificationSound);
 
         _twitchService.OnMessageReceived += HandleMessage;
         _twitchService.OnError += err =>
@@ -57,6 +59,7 @@ public partial class OverlayViewModel : ObservableObject
             Messages.Add(msg);
             while (Messages.Count > Settings.MaxMessages)
                 Messages.RemoveAt(0);
+            _soundService.Play(Settings.NotificationVolume);
         });
     }
 
@@ -115,6 +118,11 @@ public partial class OverlayViewModel : ObservableObject
     private void ClearChat()
     {
         Messages.Clear();
+    }
+
+    public void UpdateNotificationSound()
+    {
+        _soundService.SetSound(Settings.NotificationSound);
     }
 
     public void SaveSettings()
