@@ -24,6 +24,7 @@
         <BooleanToVisibilityConverter x:Key="BoolToVisibility"/>
         <conv:StringToBrushConverter x:Key="StringToBrush"/>
         <conv:PlatformToIconConverter x:Key="PlatformToIcon"/>
+        <conv:PlatformToColorConverter x:Key="PlatformToColor"/>
 
         <Style x:Key="TitleBarButton" TargetType="Button">
             <Setter Property="Background" Value="Transparent"/>
@@ -118,11 +119,14 @@
                         <DataTemplate>
                             <WrapPanel Margin="2">
                                 <!-- Platform icon -->
-                                <TextBlock Text="{Binding Platform, Converter={StaticResource PlatformToIcon}}"
-                                           Foreground="#888888"
-                                           FontSize="{Binding DataContext.Settings.FontSize, RelativeSource={RelativeSource AncestorType=Window}}"
-                                           Margin="0,0,4,0"
-                                           Visibility="{Binding DataContext.Settings.ShowPlatformIcon, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BoolToVisibility}}"/>
+                                <Viewbox Width="{Binding DataContext.Settings.FontSize, RelativeSource={RelativeSource AncestorType=Window}}"
+                                         Height="{Binding DataContext.Settings.FontSize, RelativeSource={RelativeSource AncestorType=Window}}"
+                                         Margin="0,0,4,0"
+                                         Visibility="{Binding DataContext.Settings.ShowPlatformIcon, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BoolToVisibility}}">
+                                    <Path Data="{Binding Platform, Converter={StaticResource PlatformToIcon}}"
+                                          Fill="{Binding Platform, Converter={StaticResource PlatformToColor}}"
+                                          Stretch="Uniform"/>
+                                </Viewbox>
                                 <!-- Username -->
                                 <TextBlock FontWeight="Bold"
                                            FontSize="{Binding DataContext.Settings.FontSize, RelativeSource={RelativeSource AncestorType=Window}}"
