@@ -49,22 +49,17 @@ public static class InlineMessageBehavior
                         Margin = new Thickness(2, 0, 2, 0)
                     };
 
-                    if (fragment.IsAnimated)
-                    {
-                        var uri = new Uri(fragment.EmoteUrl);
-                        ImageBehavior.SetAnimatedSource(image, new BitmapImage(uri));
-                        ImageBehavior.SetRepeatBehavior(image,
-                            System.Windows.Media.Animation.RepeatBehavior.Forever);
-                    }
-                    else
-                    {
-                        var bmp = new BitmapImage();
-                        bmp.BeginInit();
-                        bmp.UriSource = new Uri(fragment.EmoteUrl);
-                        bmp.CacheOption = BitmapCacheOption.OnLoad;
-                        bmp.EndInit();
-                        image.Source = bmp;
-                    }
+                    var uri = new Uri(fragment.EmoteUrl);
+                    var bitmapImage = new BitmapImage();
+                    bitmapImage.BeginInit();
+                    bitmapImage.UriSource = uri;
+                    bitmapImage.CacheOption = BitmapCacheOption.OnLoad;
+                    bitmapImage.EndInit();
+
+                    // Always use WpfAnimatedGif - it handles both static and animated images
+                    ImageBehavior.SetAnimatedSource(image, bitmapImage);
+                    ImageBehavior.SetRepeatBehavior(image,
+                        System.Windows.Media.Animation.RepeatBehavior.Forever);
 
                     textBlock.Inlines.Add(new InlineUIContainer(image)
                     {
@@ -73,8 +68,6 @@ public static class InlineMessageBehavior
                 }
                 catch
                 {
-                    // Failed to load emote image (bad URL, network error, etc.)
-                    // Fall back to displaying the emote name as text
                     textBlock.Inlines.Add(new Run(fragment.Content));
                 }
             }
