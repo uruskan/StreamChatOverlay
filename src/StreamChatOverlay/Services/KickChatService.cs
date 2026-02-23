@@ -60,14 +60,35 @@ public sealed partial class KickChatService : IChatService
     {
         using var http = new HttpClient();
         http.DefaultRequestHeaders.Add("User-Agent",
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36");
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36");
+        http.DefaultRequestHeaders.Add("Accept", "application/json");
+        http.DefaultRequestHeaders.Add("Accept-Language", "en-US,en;q=0.9");
         http.DefaultRequestHeaders.Add("Referer", "https://kick.com/");
+        http.DefaultRequestHeaders.Add("Origin", "https://kick.com");
 
-        var response = await http.GetStringAsync(
-            $"https://kick.com/api/v2/channels/{username}", ct);
+        // Try v2 first, then v1
+        string[] endpoints = [
+            $"https://kick.com/api/v2/channels/{username}",
+            $"https://kick.com/api/v1/channels/{username}"
+        ];
 
-        using var doc = JsonDocument.Parse(response);
-        return doc.RootElement.GetProperty("chatroom").GetProperty("id").GetInt32();
+        foreach (var url in endpoints)
+        {
+            try
+            {
+                var response = await http.GetStringAsync(url, ct);
+                using var doc = JsonDocument.Parse(response);
+
+                // v2 format: { "chatroom": { "id": 123 } }
+                if (doc.RootElement.TryGetProperty("chatroom", out var chatroom) &&
+                    chatroom.TryGetProperty("id", out var id))
+                    return id.GetInt32();
+            }
+            catch { }
+        }
+
+        throw new InvalidOperationException(
+            $"Could not resolve Kick chatroom ID for '{username}'. Kick's API may be blocked by Cloudflare.");
     }
 
     private async Task ReceiveLoopAsync(CancellationToken ct)

@@ -13,6 +13,7 @@ public partial class OverlayViewModel : ObservableObject
     private readonly KickChatService _kickService = new();
     private readonly EmoteResolver _emoteResolver = new();
     private readonly SoundService _soundService = new();
+    private readonly HashSet<string> _recentMessageIds = new();
 
     public ObservableCollection<ChatMessage> Messages { get; } = [];
 
@@ -45,6 +46,14 @@ public partial class OverlayViewModel : ObservableObject
 
     private void HandleMessage(ChatMessage msg)
     {
+        // Deduplicate messages
+        if (!_recentMessageIds.Add(msg.Id))
+            return;
+
+        // Keep the set from growing unbounded
+        if (_recentMessageIds.Count > 500)
+            _recentMessageIds.Clear();
+
         // Resolve third-party emotes for Twitch messages
         if (msg.Platform == ChatPlatform.Twitch && Settings.ShowEmotes)
         {

@@ -21,6 +21,17 @@ public sealed class TwitchChatService : IChatService
 
     public async Task ConnectAsync(string username, CancellationToken ct = default)
     {
+        // Clean up any existing connection
+        if (_client != null)
+        {
+            _client.OnConnected -= HandleConnected;
+            _client.OnDisconnected -= HandleDisconnected;
+            _client.OnConnectionError -= HandleConnectionError;
+            _client.OnMessageReceived -= HandleMessage;
+            try { await _client.DisconnectAsync(); } catch { }
+            _client = null;
+        }
+
         _channel = username.ToLowerInvariant();
 
         // Anonymous credentials (justinfan) - read-only access to chat

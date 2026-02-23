@@ -69,7 +69,6 @@ public static class InlineMessageBehavior
                     var bitmapImage = new BitmapImage();
                     bitmapImage.BeginInit();
                     bitmapImage.UriSource = uri;
-                    bitmapImage.CacheOption = BitmapCacheOption.OnLoad;
                     bitmapImage.EndInit();
 
                     // Always use WpfAnimatedGif - it handles both static and animated images
