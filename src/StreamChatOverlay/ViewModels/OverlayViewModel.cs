@@ -21,6 +21,7 @@ public partial class OverlayViewModel : ObservableObject
     [ObservableProperty] private bool _isBorderVisible = true;
     [ObservableProperty] private string _statusText = "Disconnected";
     [ObservableProperty] private AppSettings _settings;
+    private bool _hasError;
 
     public OverlayViewModel()
     {
@@ -29,19 +30,32 @@ public partial class OverlayViewModel : ObservableObject
 
         _twitchService.OnMessageReceived += HandleMessage;
         _twitchService.OnError += err =>
-            Application.Current.Dispatcher.InvokeAsync(() => StatusText = $"Twitch error: {err}");
+            Application.Current.Dispatcher.InvokeAsync(() => SetError($"Twitch error: {err}"));
         _twitchService.OnConnected += () =>
-            Application.Current.Dispatcher.InvokeAsync(() => StatusText = "Twitch connected");
+            Application.Current.Dispatcher.InvokeAsync(() => SetStatus("Twitch connected"));
         _twitchService.OnDisconnected += () =>
-            Application.Current.Dispatcher.InvokeAsync(() => StatusText = "Twitch disconnected");
+            Application.Current.Dispatcher.InvokeAsync(() => SetStatus("Twitch disconnected"));
 
         _kickService.OnMessageReceived += HandleMessage;
         _kickService.OnError += err =>
-            Application.Current.Dispatcher.InvokeAsync(() => StatusText = $"Kick error: {err}");
+            Application.Current.Dispatcher.InvokeAsync(() => SetError($"Kick error: {err}"));
         _kickService.OnConnected += () =>
-            Application.Current.Dispatcher.InvokeAsync(() => StatusText = "Kick connected");
+            Application.Current.Dispatcher.InvokeAsync(() => SetStatus("Kick connected"));
         _kickService.OnDisconnected += () =>
-            Application.Current.Dispatcher.InvokeAsync(() => StatusText = "Kick disconnected");
+            Application.Current.Dispatcher.InvokeAsync(() => SetStatus("Kick disconnected"));
+    }
+
+    // Errors stick — non-error status won't overwrite an error
+    private void SetError(string msg)
+    {
+        _hasError = true;
+        StatusText = msg;
+    }
+
+    private void SetStatus(string msg)
+    {
+        if (!_hasError)
+            StatusText = msg;
     }
 
     private void HandleMessage(ChatMessage msg)
@@ -75,6 +89,7 @@ public partial class OverlayViewModel : ObservableObject
     [RelayCommand]
     private async Task ConnectAsync()
     {
+        _hasError = false;
         var tasks = new List<Task>();
 
         if (!string.IsNullOrWhiteSpace(Settings.TwitchUsername))
@@ -87,7 +102,8 @@ public partial class OverlayViewModel : ObservableObject
         if (!string.IsNullOrWhiteSpace(Settings.KickUsername))
         {
             StatusText = "Connecting to Kick...";
-            tasks.Add(_kickService.ConnectAsync(Settings.KickUsername));
+            var manualId = string.IsNullOrWhiteSpace(Settings.KickChatroomId) ? null : Settings.KickChatroomId.Trim();
+            tasks.Add(_kickService.ConnectAsync(Settings.KickUsername, manualId));
         }
 
         if (tasks.Count == 0)
@@ -100,11 +116,12 @@ public partial class OverlayViewModel : ObservableObject
         {
             await Task.WhenAll(tasks);
             IsConnected = true;
-            StatusText = "Connected";
+            if (!_hasError)
+                StatusText = "Connected";
         }
         catch (Exception ex)
         {
-            StatusText = $"Connection error: {ex.Message}";
+            SetError($"Connection error: {ex.Message}");
         }
     }
 
@@ -114,6 +131,7 @@ public partial class OverlayViewModel : ObservableObject
         await _twitchService.DisconnectAsync();
         await _kickService.DisconnectAsync();
         IsConnected = false;
+        _hasError = false;
         StatusText = "Disconnected";
     }
 
@@ -127,6 +145,11 @@ public partial class OverlayViewModel : ObservableObject
     private void ClearChat()
     {
         Messages.Clear();
+    }
+
+    public void PreviewSound(string soundName, double volume)
+    {
+        _soundService.PlayPreview(soundName, volume);
     }
 
     public void UpdateNotificationSound()

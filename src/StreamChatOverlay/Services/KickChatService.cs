@@ -1,21 +1,15 @@
+using System.Net;
 using System.Net.Http;
-using System.Net.WebSockets;
-using System.Text;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
+using KickLib.Client;
 using StreamChatOverlay.Models;
 
 namespace StreamChatOverlay.Services;
 
 public sealed partial class KickChatService : IChatService
 {
-    private const string PusherAppKey = "32cbd69e4b950bf97679";
-    private static readonly Uri PusherUri = new(
-        $"wss://ws-us2.pusher.com/app/{PusherAppKey}?protocol=7&client=js&version=8.4.0-rc2&flash=false");
-
-    private ClientWebSocket? _ws;
-    private CancellationTokenSource? _cts;
+    private KickClient? _kickClient;
 
     public event Action<ChatMessage>? OnMessageReceived;
     public event Action<string>? OnError;
@@ -24,137 +18,127 @@ public sealed partial class KickChatService : IChatService
 
     public async Task ConnectAsync(string username, CancellationToken ct = default)
     {
-        // 1. Resolve chatroom ID
-        int chatroomId = await ResolveChatroomIdAsync(username, ct);
-
-        // 2. Open WebSocket
-        _cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-        _ws = new ClientWebSocket();
-        await _ws.ConnectAsync(PusherUri, _cts.Token);
-
-        // 3. Receive connection_established
-        var connMsg = await ReceiveOneAsync(_cts.Token);
-        var connEvent = JsonSerializer.Deserialize<PusherEvent>(connMsg);
-        if (connEvent?.Event != "pusher:connection_established")
-            throw new InvalidOperationException($"Expected connection_established, got: {connEvent?.Event}");
-
-        // 4. Subscribe to chatroom
-        var subscribePayload = JsonSerializer.Serialize(new
-        {
-            @event = "pusher:subscribe",
-            data = new { auth = "", channel = $"chatrooms.{chatroomId}.v2" }
-        });
-        await SendAsync(subscribePayload, _cts.Token);
-
-        // 5. Wait for subscription_succeeded
-        var subMsg = await ReceiveOneAsync(_cts.Token);
-
-        OnConnected?.Invoke();
-
-        // 6. Start receive loop and ping loop
-        _ = Task.Run(() => ReceiveLoopAsync(_cts.Token), _cts.Token);
-        _ = Task.Run(() => PingLoopAsync(_cts.Token), _cts.Token);
+        await ConnectAsync(username, null, ct);
     }
 
-    private async Task<int> ResolveChatroomIdAsync(string username, CancellationToken ct)
+    public async Task ConnectAsync(string username, string? manualChatroomId, CancellationToken ct = default)
     {
-        using var http = new HttpClient();
+        // 1. Resolve chatroom ID (use manual override if provided)
+        int chatroomId;
+        if (!string.IsNullOrWhiteSpace(manualChatroomId) && int.TryParse(manualChatroomId.Trim(), out var manualId))
+        {
+            chatroomId = manualId;
+        }
+        else
+        {
+            chatroomId = await ResolveChatroomIdAsync(username, ct);
+        }
+
+        // 2. Create KickLib client and wire up events
+        _kickClient = new KickClient();
+
+        _kickClient.OnConnected += (_, _) => OnConnected?.Invoke();
+        _kickClient.OnDisconnected += (_, _) => OnDisconnected?.Invoke();
+        _kickClient.OnMessage += (_, e) =>
+        {
+            try
+            {
+                var data = e.Data;
+                if (data?.Sender == null) return;
+
+                var fragments = ParseContent(data.Content);
+                var color = data.Sender.Identity?.Color ?? "#53FC18";
+
+                var msg = new ChatMessage
+                {
+                    Id = data.Id,
+                    Platform = ChatPlatform.Kick,
+                    Username = data.Sender.Username,
+                    UsernameColor = color,
+                    Fragments = fragments,
+                    BadgeUrls = [],
+                    Timestamp = data.CreatedAt
+                };
+                OnMessageReceived?.Invoke(msg);
+            }
+            catch (Exception ex)
+            {
+                OnError?.Invoke($"Message parse error: {ex.Message}");
+            }
+        };
+
+        // 3. Subscribe to chatroom and connect
+        await _kickClient.ListenToChatRoomAsync(chatroomId);
+        await _kickClient.ConnectAsync();
+    }
+
+    // --- Chatroom ID resolution (lightweight HTTP, no Puppeteer) ---
+
+    private static HttpClient CreateHttpClient()
+    {
+        var handler = new HttpClientHandler
+        {
+            AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate | DecompressionMethods.Brotli,
+            UseCookies = true,
+            CookieContainer = new CookieContainer()
+        };
+
+        var http = new HttpClient(handler);
         http.DefaultRequestHeaders.Add("User-Agent",
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36");
         http.DefaultRequestHeaders.Add("Accept", "application/json");
         http.DefaultRequestHeaders.Add("Accept-Language", "en-US,en;q=0.9");
+        http.DefaultRequestHeaders.Add("Accept-Encoding", "gzip, deflate, br");
         http.DefaultRequestHeaders.Add("Referer", "https://kick.com/");
         http.DefaultRequestHeaders.Add("Origin", "https://kick.com");
+        http.DefaultRequestHeaders.Add("sec-ch-ua", "\"Chromium\";v=\"131\", \"Not_A Brand\";v=\"24\"");
+        http.DefaultRequestHeaders.Add("sec-ch-ua-mobile", "?0");
+        http.DefaultRequestHeaders.Add("sec-ch-ua-platform", "\"Windows\"");
+        http.DefaultRequestHeaders.Add("sec-fetch-dest", "empty");
+        http.DefaultRequestHeaders.Add("sec-fetch-mode", "cors");
+        http.DefaultRequestHeaders.Add("sec-fetch-site", "same-origin");
 
-        // Try v2 first, then v1
+        return http;
+    }
+
+    private async Task<int> ResolveChatroomIdAsync(string username, CancellationToken ct)
+    {
+        using var http = CreateHttpClient();
+
         string[] endpoints = [
             $"https://kick.com/api/v2/channels/{username}",
             $"https://kick.com/api/v1/channels/{username}"
         ];
 
+        Exception? lastException = null;
         foreach (var url in endpoints)
         {
             try
             {
-                var response = await http.GetStringAsync(url, ct);
-                using var doc = JsonDocument.Parse(response);
+                var response = await http.GetAsync(url, ct);
+                response.EnsureSuccessStatusCode();
+                var body = await response.Content.ReadAsStringAsync(ct);
 
-                // v2 format: { "chatroom": { "id": 123 } }
+                using var doc = JsonDocument.Parse(body);
                 if (doc.RootElement.TryGetProperty("chatroom", out var chatroom) &&
                     chatroom.TryGetProperty("id", out var id))
                     return id.GetInt32();
             }
-            catch { }
+            catch (Exception ex)
+            {
+                lastException = ex;
+                await Task.Delay(500, ct);
+            }
         }
 
         throw new InvalidOperationException(
-            $"Could not resolve Kick chatroom ID for '{username}'. Kick's API may be blocked by Cloudflare.");
+            $"Could not resolve Kick chatroom ID for '{username}'. " +
+            $"Cloudflare may be blocking the request. " +
+            $"Enter your chatroom ID manually in Settings. " +
+            $"(Error: {lastException?.Message})");
     }
 
-    private async Task ReceiveLoopAsync(CancellationToken ct)
-    {
-        var buffer = new byte[8192];
-        try
-        {
-            while (!ct.IsCancellationRequested && _ws?.State == WebSocketState.Open)
-            {
-                var result = await _ws.ReceiveAsync(buffer, ct);
-                if (result.MessageType == WebSocketMessageType.Close)
-                {
-                    OnDisconnected?.Invoke();
-                    return;
-                }
-
-                var raw = Encoding.UTF8.GetString(buffer, 0, result.Count);
-                ProcessPusherMessage(raw);
-            }
-        }
-        catch (OperationCanceledException) { }
-        catch (Exception ex)
-        {
-            OnError?.Invoke(ex.Message);
-        }
-        OnDisconnected?.Invoke();
-    }
-
-    private void ProcessPusherMessage(string raw)
-    {
-        var envelope = JsonSerializer.Deserialize<PusherEvent>(raw);
-        if (envelope == null) return;
-
-        if (envelope.Event == "pusher:ping")
-        {
-            _ = SendAsync("""{"event":"pusher:pong","data":{}}""", _cts?.Token ?? default);
-            return;
-        }
-
-        if (envelope.Event == "App\\Events\\ChatMessageEvent" && envelope.Data != null)
-        {
-            var msg = ParseChatMessageJson(envelope.Data);
-            if (msg != null)
-                OnMessageReceived?.Invoke(msg);
-        }
-    }
-
-    public static ChatMessage? ParseChatMessageJson(string json)
-    {
-        var raw = JsonSerializer.Deserialize<KickChatMessageRaw>(json);
-        if (raw?.Sender == null) return null;
-
-        var fragments = ParseContent(raw.Content);
-        var color = raw.Sender.Identity?.Color ?? "#53FC18"; // Kick green default
-
-        return new ChatMessage
-        {
-            Id = raw.Id,
-            Platform = ChatPlatform.Kick,
-            Username = raw.Sender.Username,
-            UsernameColor = color,
-            Fragments = fragments,
-            BadgeUrls = [], // Badges implemented later
-            Timestamp = raw.CreatedAt
-        };
-    }
+    // --- Kick message content parsing ---
 
     public static List<MessageFragment> ParseContent(string content)
     {
@@ -187,89 +171,16 @@ public sealed partial class KickChatService : IChatService
     [GeneratedRegex(@"\[emote:(\d+):([^\]]+)\]")]
     private static partial Regex EmoteRegex();
 
-    private async Task PingLoopAsync(CancellationToken ct)
-    {
-        try
-        {
-            while (!ct.IsCancellationRequested)
-            {
-                await Task.Delay(TimeSpan.FromSeconds(60), ct);
-                await SendAsync("""{"event":"pusher:ping","data":{}}""", ct);
-            }
-        }
-        catch (OperationCanceledException) { }
-    }
-
-    private async Task SendAsync(string message, CancellationToken ct)
-    {
-        if (_ws?.State != WebSocketState.Open) return;
-        var bytes = Encoding.UTF8.GetBytes(message);
-        await _ws.SendAsync(bytes, WebSocketMessageType.Text, true, ct);
-    }
-
-    private async Task<string> ReceiveOneAsync(CancellationToken ct)
-    {
-        var buffer = new byte[8192];
-        var result = await _ws!.ReceiveAsync(buffer, ct);
-        return Encoding.UTF8.GetString(buffer, 0, result.Count);
-    }
+    // --- Lifecycle ---
 
     public async Task DisconnectAsync()
     {
-        _cts?.Cancel();
-        if (_ws?.State == WebSocketState.Open)
-        {
-            try
-            {
-                await _ws.CloseAsync(WebSocketCloseStatus.NormalClosure, "", CancellationToken.None);
-            }
-            catch { }
-        }
+        if (_kickClient != null)
+            await _kickClient.DisconnectAsync();
     }
 
     public async ValueTask DisposeAsync()
     {
         await DisconnectAsync();
-        _ws?.Dispose();
-        _cts?.Dispose();
-    }
-
-    // Pusher protocol DTOs
-    private sealed class PusherEvent
-    {
-        [JsonPropertyName("event")] public string Event { get; set; } = "";
-        [JsonPropertyName("data")] public string? Data { get; set; }
-        [JsonPropertyName("channel")] public string? Channel { get; set; }
-    }
-
-    private sealed class KickChatMessageRaw
-    {
-        [JsonPropertyName("id")] public string Id { get; set; } = "";
-        [JsonPropertyName("chatroom_id")] public int ChatroomId { get; set; }
-        [JsonPropertyName("content")] public string Content { get; set; } = "";
-        [JsonPropertyName("type")] public string Type { get; set; } = "";
-        [JsonPropertyName("created_at")] public DateTime CreatedAt { get; set; }
-        [JsonPropertyName("sender")] public KickSenderRaw? Sender { get; set; }
-    }
-
-    private sealed class KickSenderRaw
-    {
-        [JsonPropertyName("id")] public int Id { get; set; }
-        [JsonPropertyName("username")] public string Username { get; set; } = "";
-        [JsonPropertyName("slug")] public string Slug { get; set; } = "";
-        [JsonPropertyName("identity")] public KickIdentityRaw? Identity { get; set; }
-    }
-
-    private sealed class KickIdentityRaw
-    {
-        [JsonPropertyName("color")] public string Color { get; set; } = "#FFFFFF";
-        [JsonPropertyName("badges")] public List<KickBadgeRaw> Badges { get; set; } = [];
-    }
-
-    private sealed class KickBadgeRaw
-    {
-        [JsonPropertyName("type")] public string Type { get; set; } = "";
-        [JsonPropertyName("text")] public string Text { get; set; } = "";
-        [JsonPropertyName("count")] public int? Count { get; set; }
     }
 }

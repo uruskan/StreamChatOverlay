@@ -23,6 +23,7 @@ public sealed class AppSettings
     public double WindowHeight { get; set; } = 600;
     public string NotificationSound { get; set; } = "None";
     public double NotificationVolume { get; set; } = 0.5;
+    public string KickChatroomId { get; set; } = "";
 
     private static readonly string SettingsPath = Path.Combine(
         AppDomain.CurrentDomain.BaseDirectory, "settings.json");

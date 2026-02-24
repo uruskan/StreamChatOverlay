@@ -3,11 +3,38 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:services="clr-namespace:StreamChatOverlay.Services"
         Title="Settings"
-        Width="400" Height="520"
+        Width="400" Height="560"
         WindowStartupLocation="CenterOwner"
         ResizeMode="NoResize"
         Background="#1E1E2E"
         Foreground="White">
+
+    <Window.Resources>
+        <!-- Dark-themed ComboBox dropdown item style -->
+        <Style x:Key="DarkComboBoxItem" TargetType="ComboBoxItem">
+            <Setter Property="Background" Value="#2A2A3E"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Padding" Value="6,4"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBoxItem">
+                        <Border Background="{TemplateBinding Background}"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsHighlighted" Value="True">
+                                <Setter Property="Background" Value="#9147FF"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#9147FF"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
 
     <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="20">
         <StackPanel>
@@ -24,6 +51,12 @@
 
             <TextBlock Text="Kick Username" Margin="0,0,0,4"/>
             <TextBox Text="{Binding Settings.KickUsername, UpdateSourceTrigger=PropertyChanged}"
+                     Padding="6" Margin="0,0,0,8"
+                     Background="#2A2A3E" Foreground="White" BorderBrush="#444"/>
+
+            <TextBlock Text="Kick Chatroom ID (optional, use if auto-detect fails)"
+                       Margin="0,0,0,4" FontSize="11" Foreground="#888"/>
+            <TextBox Text="{Binding Settings.KickChatroomId, UpdateSourceTrigger=PropertyChanged}"
                      Padding="6" Margin="0,0,0,12"
                      Background="#2A2A3E" Foreground="White" BorderBrush="#444"/>
 
@@ -79,10 +112,22 @@
                        Margin="0,0,0,8"/>
 
             <TextBlock Text="Notification Sound" Margin="0,0,0,4"/>
-            <ComboBox ItemsSource="{x:Static services:SoundService.AvailableSounds}"
-                      SelectedItem="{Binding Settings.NotificationSound}"
-                      Padding="6" Margin="0,0,0,8"
-                      Background="#2A2A3E" Foreground="White" BorderBrush="#444"/>
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                <ComboBox x:Name="SoundComboBox"
+                          ItemsSource="{x:Static services:SoundService.AvailableSounds}"
+                          SelectedItem="{Binding Settings.NotificationSound}"
+                          ItemContainerStyle="{StaticResource DarkComboBoxItem}"
+                          Padding="6" Width="200"
+                          Background="#2A2A3E" Foreground="White" BorderBrush="#444">
+                    <ComboBox.Resources>
+                        <SolidColorBrush x:Key="{x:Static SystemColors.WindowBrushKey}" Color="#2A2A3E"/>
+                    </ComboBox.Resources>
+                </ComboBox>
+                <Button Content="&#9654; Preview" Click="PreviewSound_Click"
+                        Padding="10,6" Margin="8,0,0,0"
+                        Background="#444" Foreground="White"
+                        BorderThickness="0" Cursor="Hand"/>
+            </StackPanel>
 
             <TextBlock Text="{Binding Settings.NotificationVolume, StringFormat='Volume: {0:P0}'}"
                        Margin="0,0,0,4"/>
