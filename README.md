@@ -18,20 +18,6 @@ Built with WPF/.NET 9. No browser sources, no Electron, no bloat.
 - **Text shadow** — readable on any game background
 - **No login required** — connects anonymously to public chat (read-only)
 
-## Comparison
-
-| Feature | Stream Chat Overlay | Transparent Twitch Chat Overlay |
-|---|---|---|
-| Twitch chat | Yes | Yes |
-| Kick chat | Yes | No |
-| Native emotes | Yes | Via browser |
-| BTTV / FFZ / 7TV | Yes | Via browser |
-| Animated emotes | Yes (GIF) | Via browser |
-| Notification sounds | Yes (5 tones + volume) | No |
-| Framework | WPF native | WebView2 / browser |
-| Memory usage | ~30-50 MB | ~150-300 MB |
-| Login required | No | No |
-
 ## Installation
 
 ### Download (Recommended)
