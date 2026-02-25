@@ -103,3 +103,6 @@ publish/
 
 ## Runtime settings
 settings.json
+
+## Claude Code
+.claude/
