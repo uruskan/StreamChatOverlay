@@ -4,6 +4,8 @@ A lightweight, transparent chat overlay for **Twitch** and **Kick** — designed
 
 Built with WPF/.NET 9. No browser sources, no Electron, no bloat.
 
+![Overlay in action](docs/screenshots/overlay.png)
+
 ## Features
 
 - **Twitch + Kick chat** in a single overlay window
@@ -42,6 +44,8 @@ Run `publish/StreamChatOverlay.exe`.
 
 ## Setup
 
+![Settings window](docs/screenshots/settings.png)
+
 ### Twitch
 
 1. Open Settings (gear icon in title bar, or right-click tray icon)
@@ -73,6 +77,8 @@ If Cloudflare blocks the API page:
 > **Note:** The chatroom ID is different from the channel ID. Make sure you use the one inside the `"chatroom"` object, not the top-level `"id"`.
 
 ## Usage
+
+![System tray menu](docs/screenshots/tray-menu.png)
 
 - **Drag** the title bar to move the overlay
 - **Resize** using the grip in the bottom-right corner
