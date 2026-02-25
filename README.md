@@ -34,11 +34,13 @@ Built with WPF/.NET 9. No browser sources, no Electron, no bloat.
 
 ## Installation
 
-### Download Release
+### Download (Recommended)
 
-1. Download the latest release from [Releases](https://github.com/uruskan/StreamChatOverlay/releases)
-2. Extract the zip
+1. **[Download the latest release](https://github.com/uruskan/StreamChatOverlay/releases/latest)** — grab the `.zip` file
+2. Extract the zip to any folder
 3. Run `StreamChatOverlay.exe`
+
+> Requires [.NET 9 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/9.0/runtime) — download the **"Run desktop apps"** version if you don't have it installed.
 
 ### Build from Source
 
